@@ -1,0 +1,96 @@
+appId: com.autoapp.builder
+productName: AutoApp-Builder
+copyright: Copyright © 2026 AutoApp-Builder Contributors
+
+directories:
+  buildResources: build
+  output: release/${version}
+
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - package.json
+  - "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}"
+  - "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}"
+  - "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}"
+
+extraResources:
+  - from: src/main/templates/electron-wrapper
+    to: templates/electron-wrapper
+    filter:
+      - "**/*"
+
+asar: true
+compression: maximum
+
+# Конфигурация сборки под Windows (.exe NSIS + Portable)
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+        - arm64
+    - target: portable
+      arch:
+        - x64
+  artifactName: "${productName}-Windows-${version}-${arch}.${ext}"
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+
+portable:
+  artifactName: "${productName}-Windows-${version}-${arch}-Portable.${ext}"
+
+# Конфигурация сборки под macOS (.dmg Universal/x64/arm64)
+mac:
+  category: public.app-category.developer-tools
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64
+  artifactName: "${productName}-macOS-${version}-${arch}.${ext}"
+
+dmg:
+  sign: false
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+# Конфигурация сборки под Linux (.AppImage + .deb)
+linux:
+  category: Development
+  maintainer: AutoApp-Builder Open Source Team <maintainers@autoapp-builder.org>
+  vendor: AutoApp-Builder
+  synopsis: Кроссплатформенный оркестратор сборки и самоисцеления проектов с локальным ИИ (Early Stage Alpha)
+  target:
+    - target: AppImage
+      arch:
+        - x64
+        - arm64
+    - target: deb
+      arch:
+        - x64
+        - arm64
+  artifactName: "${productName}-Linux-${version}-${arch}.${ext}"
+
+# Публикация в публичный репозиторий GitHub Releases с пометкой Pre-release (Ранняя стадия / Alpha)
+publish:
+  provider: github
+  releaseType: prerelease
+

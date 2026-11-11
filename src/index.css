@@ -1,0 +1,55 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --bg: #111113;
+  --ink: #f0f0f0;
+  --accent: #5e6ad2;
+  --accent-hover: #6e7ae2;
+  --ink-faint: rgba(255, 255, 255, 0.1);
+  --surface: #1a1a1e;
+}
+
+@layer base {
+  body {
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  code, pre, .font-mono, .tabular-nums {
+    font-family: 'Space Mono', ui-monospace, SFMono-Regular, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.font-display {
+  font-family: 'Syne', sans-serif;
+}
+
+.mono-label {
+  font-family: 'Space Mono', monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+}
+
+/* Тонкие аккуратные полосы прокрутки исключительно для целевых контейнеров */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(94, 106, 210, 0.65);
+}

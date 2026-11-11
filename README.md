@@ -1,11 +1,120 @@
-<div align="center">
+# AutoApp-Builder — Кроссплатформенный оркестратор бинаризации и самоисцеления проектов
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+> ### ⚠️ СТАТУС ПРОЕКТА: РАННЯЯ СТАДИЯ РАЗРАБОТКИ (EARLY STAGE / ALPHA `v0.1.0-alpha.1`)
+> **Обратите внимание:** Приложение **AutoApp-Builder** в настоящий момент находится на **ранней стадии разработки (`Early Access / Alpha Pre-Release`)**.
+> - Проект открыт в публичном репозитории для раннего тестирования, сбора обратной связи и совместного развития архитектуры.
+> - Форматы хранения реестра (`apps-hub-registry.json`), структура единого кэша (`userData/shared-cache`) и внутренние контракты IPC могут обновляться по мере стабилизации ветки `0.x`.
+> - В приложение встроена полная система логирования всех процессов и автоматического устранения сбоев (**Process Telemetry & Auto-Remediation**). Если вы столкнулись с ошибкой, нажмите кнопку **«ЛОГ ПРОЦЕССОВ»** в нижней панели приложения, примените автоматическое исправление или экспортируйте файл `AutoApp-Process-Telemetry.log` для создания отчета в разделе **GitHub Issues**.
 
-  <h1>Built with AI Studio</h2>
+---
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## О проекте
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+**AutoApp-Builder** — десктопное приложение-оркестратор на стеке **Electron + React 19 + TypeScript + Vite + Tailwind CSS**, которое превращает исходные архивы (`ZIP` / `TAR.GZ`) и ссылки на **GitHub-репозитории** в автономные исполняемые файлы для текущей ОС (`.exe`, `.dmg`/`.app`, `.AppImage`) и мобильные пакеты **Android (`.apk`)**, используя единый централизованный кэш зависимостей и цикл самоисцеления ошибок сборки через бесплатные локальные ИИ-модели (размером до 3B параметров).
 
-</div>
+### Ключевые возможности (`v0.1.0-alpha.1`)
+
+1. **Хаб собранных приложений (`APPS HUB` — стартовый экран)**
+   - Управление всеми уже скомпилированными проектами из единого интерфейса.
+   - Прямой запуск (`LAUNCH APPLICATION`) и остановка (`STOP PROCESS`) приложений с мониторингом системного **PID**, тикающего таймера **UPTIME** и потоков `stdout` / `stderr` в реальном времени.
+   - Открытие директории с бинарником, скачивание исполняемого файла и удаление проекта из реестра.
+
+2. **Проверка и автообновление GitHub-проектов с откатом (1-Click Rollback)**
+   - Ручная проверка по кнопке (`ПРОВЕРИТЬ GITHUB`) через GitHub REST API и фоновый демон периодического опроса коммитов (`1..120` минут).
+   - Автоматическая пересборка при обнаружении нового коммита или релиза с предварительным сохранением предыдущей рабочей сборки в `output/backups/`.
+   - Мгновенный откат к предыдущему проверенному коммиту (`ОТКАТИТЬ К SHA ...`) в один клик при возникновении регрессии.
+
+3. **Принцип «Максимальной бинаризации» (Executable-First)**
+   - **Веб-проекты и фронтенды (`React`, `Vite`, `Vue`, `Next.js`, `Node.js`, `HTML/JS`)**: автоматическая упаковка в автономный десктопный контейнер на базе шаблона `src/main/templates/electron-wrapper` без необходимости ручной настройки окружения.
+   - **Скриптовые и компилируемые языки**:
+     - `Python` (`requirements.txt`, `pyproject.toml`) -> автономный файл через `PyInstaller` (`--onefile --windowed`).
+     - `Rust` (`Cargo.toml`) -> релизный бинарник `cargo build --release`.
+     - `Go` (`go.mod`) -> оптимизированный бинарник `go build -ldflags="-s -w"`.
+   - **Сборка под Android (`.apk`)**: упаковка через `Capacitor` + `Gradle` (`assembleRelease` / `assembleDebug`).
+
+4. **100% бесплатный локальный движок ИИ (до 3B параметров)**
+   - Никаких платных облачных API или привязки к закрытым провайдерам.
+   - Поддержка 4 режимов в `src/main/ai/provider.ts`:
+     1. `builtin-llama` — встроенный `llama-server` (`127.0.0.1:8080`) с потоковым скачиванием GGUF-моделей из Hugging Face в `userData/models`.
+     2. `ollama` — подключение к локальному демону Ollama (`http://127.0.0.1:11434`).
+     3. `local-server` — подключение к LM Studio / LocalAI.
+     4. `custom-openai` — подключение к любому совместимому локальному или корпоративному эндпоинту.
+   - Предустановленные легковесные модели: **Qwen 2.5 Coder (0.5B, 1.5B, 3B)**, **Llama 3.2 (1B, 3B)**, **SmolLM2 1.7B**.
+
+5. **Единый централизованный кэш (`SharedCacheManager`)**
+   - Перенаправление кэшей `npm`, `pip`, `Gradle` и `Cargo` в общую директорию `userData/shared-cache`.
+   - Контроль свободного места на диске и автоматическая очистка старых временных сборок по алгоритму **LRU**.
+
+6. **Полное логирование всех процессов и автоисправление ошибок (`SystemProcessLogger`)**
+   - Запись каждого дочернего процесса ОС, кода возврата, длительности, `PID` и вызовов API в `userData/logs/autoapp-system.log` и `userData/logs/process-journal.jsonl`.
+   - Автоматическая диагностика сбоев (`BROKEN_DEPENDENCY`, `CRASHED_HUB_APP`, `CORRUPTED_WORKSPACE`, `AI_ENDPOINT_OFFLINE`, `PROCESS_TIMEOUT`) и устранение ошибок в 1 клик.
+
+---
+
+## Быстрый старт и локальная разработка
+
+### 1. Клонирование и установка зависимостей
+```bash
+git clone https://github.com/<ваш-аккаунт>/autoapp-builder.git
+cd autoapp-builder
+npm install
+```
+
+### 2. Настройка переменных окружения
+Скопируйте `.env.example` в `.env`:
+```env
+PORT=3000
+AUTOAPP_CACHE_ROOT=""
+AUTOAPP_LLAMA_PORT=8080
+OLLAMA_HOST="http://127.0.0.1:11434"
+```
+
+### 3. Запуск и проверка сборки
+```bash
+# Запуск в режиме разработки (сервер оркестратора + интерфейс на http://localhost:3000)
+npm run dev
+
+# Строгая проверка типов TypeScript (без ошибок)
+npm run lint
+
+# Сборка фронтенда и проверка готовности к упаковке Electron
+npm run build:electron
+```
+
+---
+
+## Автоматическая сборка и релиз в публичном репозитории GitHub
+
+В проект встроен готовый пайплайн **GitHub Actions** (`.github/workflows/build.yml`), который автоматически запускается при:
+- пуше в ветку `main` или `master`;
+- создании тега вида `v*` (например, `v0.1.0-alpha.1`);
+- ручном запуске через вкладку **Actions -> Build & Auto-Release AutoApp-Builder -> Run workflow**.
+
+### Что делает пайплайн автоматически:
+1. Поднимает матрицу из 3 операционных систем (`windows-latest`, `macos-latest`, `ubuntu-latest`).
+2. Выполняет строгую проверку типов `npm run lint` и сборку `npm run build:electron`.
+3. Упаковывает нативные дистрибутивы через `electron-builder`:
+   - **Windows**: `.exe` (NSIS-инсталлятор + Portable-версия)
+   - **macOS**: `.dmg` и `.zip` (`x64` + `arm64`)
+   - **Linux**: `.AppImage` и `.deb`
+4. Генерирует файл контрольных сумм `SHA256SUMS.txt`.
+5. Автоматически создает публичный релиз в разделе **GitHub Releases** с флагом `prerelease: true` и уведомлением о **ранней стадии разработки (Early Stage / Alpha)**.
+
+### Команды для первой публикации в ваш публичный GitHub-репозиторий:
+```bash
+git init
+git add .
+git commit -m "release: AutoApp-Builder v0.1.0-alpha.1 (Early Stage Public Alpha)"
+git branch -M main
+git remote add origin https://github.com/<ваш-аккаунт>/autoapp-builder.git
+git push -u origin main
+
+# Создание релизного тега для автоматической выгрузки бинарников в GitHub Releases:
+git tag v0.1.0-alpha.1
+git push origin v0.1.0-alpha.1
+```
+
+---
+
+## Лицензия
+Проект распространяется под открытой лицензией **Apache License 2.0** (см. файл [LICENSE](./LICENSE)).

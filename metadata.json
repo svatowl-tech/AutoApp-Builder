@@ -1,0 +1,6 @@
+{
+  "name": "AutoApp-Builder",
+  "description": "Кроссплатформенный десктопный оркестратор сборки проектов (Web, Python, Rust, Go, C++, Android) в автономные исполняемые файлы с единым кэшем и самоисцелением ошибок через локальный ИИ (до 3B).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

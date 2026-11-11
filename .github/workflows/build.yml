@@ -1,0 +1,138 @@
+name: Build & Auto-Release AutoApp-Builder (Public Early Stage)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Тег релиза для публикации (например, v0.1.0-alpha.1)"
+        required: false
+        default: "v0.1.0-alpha.1"
+
+permissions:
+  contents: write
+
+jobs:
+  build-matrix:
+    name: Build on ${{ matrix.os }} (${{ matrix.platform_name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform_flag: --win
+            platform_name: Windows
+          - os: macos-latest
+            platform_flag: --mac
+            platform_name: macOS
+          - os: ubuntu-latest
+            platform_flag: --linux
+            platform_name: Linux
+
+    steps:
+      - name: Клонирование публичного репозитория
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Установка Node.js 22 LTS с кэшированием npm
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+
+      - name: Установка системных зависимостей Linux (AppImage / deb)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfuse2 rpm fakeroot dpkg
+
+      - name: Установка пакетов проекта
+        run: npm install
+
+      - name: Строгая проверка типов TypeScript (tsc --noEmit)
+        run: npm run lint
+
+      - name: Сборка фронтенда React 19 (Vite) и модулей Electron
+        run: npm run build:electron
+
+      - name: Упаковка нативных инсталляторов (${{ matrix.platform_name }})
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: npx electron-builder ${{ matrix.platform_flag }} --publish never
+
+      - name: Выгрузка собранных бинарных артефактов (${{ matrix.platform_name }})
+        uses: actions/upload-artifact@v4
+        with:
+          name: AutoApp-Builder-${{ matrix.platform_name }}
+          path: |
+            release/**/*.exe
+            release/**/*.dmg
+            release/**/*.zip
+            release/**/*.AppImage
+            release/**/*.deb
+            release/**/latest*.yml
+          if-no-files-found: warn
+
+  publish-release:
+    name: Auto-Publish Public Pre-Release (Early Stage Alpha)
+    needs: build-matrix
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Клонирование репозитория
+        uses: actions/checkout@v4
+
+      - name: Скачивание артефактов всех платформ (Windows, macOS, Linux)
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts-bundle
+
+      - name: Генерация контрольных сумм SHA-256
+        run: |
+          mkdir -p artifacts-bundle
+          find artifacts-bundle -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.zip" \) -exec sha256sum {} + > artifacts-bundle/SHA256SUMS.txt || true
+
+      - name: Автоматическая публикация Pre-Release в GitHub Releases
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || github.event.inputs.release_tag || 'v0.1.0-alpha.1' }}
+          name: "AutoApp-Builder ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || github.event.inputs.release_tag || 'v0.1.0-alpha.1' }} [Early Stage / Alpha]"
+          draft: false
+          prerelease: true
+          generate_release_notes: true
+          body: |
+            > ### ⚠️ ВАЖНОЕ УВЕДОМЛЕНИЕ: РАННЯЯ СТАДИЯ РАЗРАБОТКИ (EARLY STAGE / ALPHA PRE-RELEASE)
+            > Данный релиз **AutoApp-Builder** находится на **ранней стадии разработки (`v0.1.0-alpha.1`)** и публикуется в открытом доступе для предварительного тестирования архитектуры, обратной связи и контрибьютинга.
+            > - Интерфейс, структура локального кэша (`userData/shared-cache`) и API плагинов могут изменяться в следующих минорных версиях.
+            > - При возникновении сбоев используйте встроенную панель **«ЛОГ ПРОЦЕССОВ»** (`ProcessDiagnosticsDrawer`) для автоматического исправления ошибки в 1 клик или выгрузите диагностический файл `AutoApp-Process-Telemetry.log` и приложите его в раздел **Issues**.
+
+            ---
+
+            ### Включенные возможности (v0.1.0-alpha.1)
+            - **Хаб собранных приложений (`APPS HUB`)**: запуск и остановка собранных бинарников из интерфейса, мониторинг живого `PID`, аптайма и потоков `stdout`/`stderr`.
+            - **Проверка и автообновление GitHub-проектов**: ручной и фоновый опрос коммитов с автоматической пересборкой и мгновенным откатом к предыдущей рабочей версии (**1-Click Rollback**).
+            - **Принцип максимальной бинаризации (Executable-First)**: упаковка проектов в автономные десктопные файлы (`.exe`, `.dmg`, `.AppImage`) и мобильные пакеты Android (`.apk`).
+            - **Бесплатный локальный ИИ-движок (до 3B)**: самоисцеление ошибок сборки (`ErrorHealer`, до 4 попыток) через `builtin-llama`, `Ollama`, `LM Studio` или `Custom OpenAI` без платных облачных ключей.
+            - **Сквозное логирование всех процессов и Auto-Remediation**: полный журнал всех дочерних процессов ОС (`autoapp-system.log` / `process-journal.jsonl`) с классификацией сбоев и кнопками автоисправления.
+          files: |
+            artifacts-bundle/**/*.exe
+            artifacts-bundle/**/*.dmg
+            artifacts-bundle/**/*.zip
+            artifacts-bundle/**/*.AppImage
+            artifacts-bundle/**/*.deb
+            artifacts-bundle/**/latest*.yml
+            artifacts-bundle/SHA256SUMS.txt
