@@ -1087,6 +1087,7 @@ export class OrchestratorEngine {
       'src/index.css',
       'server.ts',
       'index.html',
+      'build/icon.png',
       '.env.example',
       '.gitignore',
     ];

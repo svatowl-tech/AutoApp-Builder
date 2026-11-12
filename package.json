@@ -3,6 +3,7 @@
   "private": false,
   "version": "0.1.0-alpha.1",
   "description": "Кроссплатформенный десктопный оркестратор сборки и автообновления GitHub-проектов в автономные бинарники (.exe, .dmg, .AppImage, .apk) с самоисцелением через локальный ИИ (Early Stage Alpha)",
+  "author": "AutoApp-Builder Open Source Team <maintainers@autoapp-builder.org>",
   "license": "Apache-2.0",
   "type": "module",
   "main": "dist-electron/main/index.cjs",
