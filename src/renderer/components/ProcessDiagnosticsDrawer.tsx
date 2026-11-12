@@ -30,6 +30,7 @@ import {
   ProcessLogSubsystem,
   SystemProcessLogEntry,
 } from '../../shared/types.ts';
+import { orchestratorClient } from '../bridge.ts';
 
 interface ProcessDiagnosticsDrawerProps {
   isOpen: boolean;
@@ -217,14 +218,14 @@ export const ProcessDiagnosticsDrawer: React.FC<
               </button>
             )}
 
-            <a
-              href="/api/logs/export"
-              download="AutoApp-Process-Telemetry.log"
-              className="flex items-center gap-1.5 px-3 py-2 border border-white/15 hover:border-[#5e6ad2] text-white/85 font-mono text-[10px] uppercase tracking-wider transition-colors"
+            <button
+              type="button"
+              onClick={() => orchestratorClient.exportProcessLogs()}
+              className="flex items-center gap-1.5 px-3 py-2 border border-white/15 hover:border-[#5e6ad2] text-white/85 font-mono text-[10px] uppercase tracking-wider transition-colors cursor-pointer"
             >
               <Download className="h-3.5 w-3.5 text-[#5e6ad2]" />
               <span>СКАЧАТЬ .LOG</span>
-            </a>
+            </button>
 
             <button
               type="button"

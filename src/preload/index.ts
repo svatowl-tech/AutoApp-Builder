@@ -15,6 +15,7 @@ import {
   PresetGGUFModel,
   ProcessLoggerState,
   SharedCacheStats,
+  SourceFileNode,
   SystemProcessLogEntry,
 } from '../shared/types.ts';
 
@@ -105,6 +106,11 @@ export interface ElectronOrchestratorAPI {
   ) => Promise<ProcessLoggerState>;
   clearProcessLogs: () => Promise<ProcessLoggerState>;
   exportProcessLogs: () => Promise<{ reportText: string }>;
+  getReleaseFiles: () => Promise<SourceFileNode[]>;
+  getReleaseFileContent: (
+    filePath: string,
+  ) => Promise<{ path: string; content: string }>;
+  downloadReleaseZip: () => Promise<{ savedPath: string }>;
 }
 
 const electronAPI: ElectronOrchestratorAPI = {
@@ -147,6 +153,10 @@ const electronAPI: ElectronOrchestratorAPI = {
     ipcRenderer.invoke('logs:simulate-error', faultType),
   clearProcessLogs: () => ipcRenderer.invoke('logs:clear'),
   exportProcessLogs: () => ipcRenderer.invoke('logs:export'),
+  getReleaseFiles: () => ipcRenderer.invoke('release:get-files'),
+  getReleaseFileContent: (filePath) =>
+    ipcRenderer.invoke('release:get-file-content', filePath),
+  downloadReleaseZip: () => ipcRenderer.invoke('release:download-zip'),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

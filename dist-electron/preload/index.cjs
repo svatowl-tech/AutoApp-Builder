@@ -46,6 +46,9 @@ var electronAPI = {
   remediateAllProcessErrors: () => import_electron.ipcRenderer.invoke("logs:remediate-all"),
   simulateProcessError: (faultType) => import_electron.ipcRenderer.invoke("logs:simulate-error", faultType),
   clearProcessLogs: () => import_electron.ipcRenderer.invoke("logs:clear"),
-  exportProcessLogs: () => import_electron.ipcRenderer.invoke("logs:export")
+  exportProcessLogs: () => import_electron.ipcRenderer.invoke("logs:export"),
+  getReleaseFiles: () => import_electron.ipcRenderer.invoke("release:get-files"),
+  getReleaseFileContent: (filePath) => import_electron.ipcRenderer.invoke("release:get-file-content", filePath),
+  downloadReleaseZip: () => import_electron.ipcRenderer.invoke("release:download-zip")
 };
 import_electron.contextBridge.exposeInMainWorld("electronAPI", electronAPI);

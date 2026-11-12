@@ -52,11 +52,32 @@ type LayoutMode = 'studio' | 'tray';
 export function AutoAppBuilderRenderer() {
   // Стартовый экран по умолчанию — Хаб собранных приложений ('apps-hub')
   const [activeSection, setActiveSection] = useState<ActiveSection>('apps-hub');
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>('studio');
+  const [isCompactViewport, setIsCompactViewport] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+  );
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>(() =>
+    typeof window !== 'undefined' && window.innerWidth < 768
+      ? 'tray'
+      : 'studio',
+  );
   const [targetFormat, setTargetFormat] = useState<BuildTargetFormat>(
     'desktop-executable',
   );
   const [simulateHealDemo, setSimulateHealDemo] = useState<boolean>(true);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const compact = window.innerWidth < 768;
+      setIsCompactViewport(compact);
+      if (compact) {
+        setLayoutMode('tray');
+      } else if (window.innerWidth >= 1024 && window.electronAPI) {
+        setLayoutMode('studio');
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const [hubApps, setHubApps] = useState<ManagedHubApp[]>([]);
   const [hubSettings, setHubSettings] = useState<HubAutoUpdateSettings>({
@@ -241,76 +262,100 @@ export function AutoAppBuilderRenderer() {
   const totalProcessLogsCount = processLoggerState?.stats.totalEntries || 0;
 
   return (
-    <div className="h-dvh w-full overflow-hidden grid grid-rows-[auto_1fr_auto] bg-[#111113] text-[#f0f0f0]">
-      {/* 1. Верхняя панель навигации (Top Bar Contract + Variation 7) */}
-      <header className="px-8 py-5 flex items-center justify-between gap-8 bg-black border-b border-white/10 shrink-0">
-        {/* Зона 1: Бренд Syne 800 с пометкой ранней стадии (Early Stage Alpha) */}
-        <a
-          href="#apps-hub"
-          onClick={(e) => {
-            e.preventDefault();
-            setActiveSection('apps-hub');
-          }}
-          className="font-display font-extrabold text-xl xl:text-2xl tracking-tight text-[#f0f0f0] whitespace-nowrap shrink-0"
-        >
-          AUTOAPP [0.1.0-ALPHA · EARLY STAGE]
-        </a>
+    <div
+      className={`h-dvh w-full overflow-hidden grid ${
+        isCompactViewport && layoutMode === 'tray'
+          ? 'grid-rows-[1fr_auto]'
+          : 'grid-rows-[auto_1fr_auto]'
+      } bg-[#111113] text-[#f0f0f0]`}
+    >
+      {/* 1. Верхняя панель навигации (Top Bar Contract + Variation 7 — скрыта внутри узкого окна 440x650, чтобы не дублировать шапку виджета) */}
+      {!(isCompactViewport && layoutMode === 'tray') && (
+        <header className="px-8 py-5 flex items-center justify-between gap-8 bg-black border-b border-white/10 shrink-0">
+          {/* Зона 1: Бренд Syne 800 с пометкой ранней стадии (Early Stage Alpha) */}
+          <a
+            href="#apps-hub"
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveSection('apps-hub');
+            }}
+            className="font-display font-extrabold text-xl xl:text-2xl tracking-tight text-[#f0f0f0] whitespace-nowrap shrink-0"
+          >
+            AUTOAPP [0.1.0-ALPHA · EARLY STAGE]
+          </a>
 
-        {/* Зона 2: 5 однострочных навигационных ссылок (APPS HUB — стартовый экран) */}
-        <nav className="hidden md:flex items-center gap-8">
-          {(
-            [
-              {
-                id: 'apps-hub',
-                label:
-                  availableUpdatesCount > 0
-                    ? `APPS HUB (${hubApps.length} · ${availableUpdatesCount} UPD)`
-                    : `APPS HUB (${hubApps.length})`,
-              },
-              { id: 'pipeline', label: 'PIPELINE' },
-              { id: 'ai-engine', label: 'AI ENGINE' },
-              { id: 'shared-cache', label: 'CACHE' },
-              { id: 'release-code', label: 'RELEASE' },
-            ] as const
-          ).map((item) => (
-            <a
-              key={item.id}
-              href={`#${item.id}`}
-              onClick={(e) => {
-                e.preventDefault();
-                setActiveSection(item.id);
-              }}
-              className={`text-xs font-semibold tracking-[0.06em] transition-colors whitespace-nowrap shrink-0 ${
-                activeSection === item.id
-                  ? 'text-[#5e6ad2] underline underline-offset-8 decoration-2'
-                  : 'text-[#f0f0f0]/75 hover:text-white'
-              }`}
-            >
-              {item.label}
-            </a>
-          ))}
-        </nav>
+          {/* Зона 2: 5 однострочных навигационных ссылок (APPS HUB — стартовый экран) */}
+          <nav className="hidden md:flex items-center gap-8">
+            {(
+              [
+                {
+                  id: 'apps-hub',
+                  label:
+                    availableUpdatesCount > 0
+                      ? `APPS HUB (${hubApps.length} · ${availableUpdatesCount} UPD)`
+                      : `APPS HUB (${hubApps.length})`,
+                },
+                { id: 'pipeline', label: 'PIPELINE' },
+                { id: 'ai-engine', label: 'AI ENGINE' },
+                { id: 'shared-cache', label: 'CACHE' },
+                { id: 'release-code', label: 'RELEASE' },
+              ] as const
+            ).map((item) => (
+              <a
+                key={item.id}
+                href={`#${item.id}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setActiveSection(item.id);
+                }}
+                className={`text-xs font-semibold tracking-[0.06em] transition-colors whitespace-nowrap shrink-0 ${
+                  activeSection === item.id
+                    ? 'text-[#5e6ad2] underline underline-offset-8 decoration-2'
+                    : 'text-[#f0f0f0]/75 hover:text-white'
+                }`}
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
 
-        {/* Зона 3: Главное действие выгрузки публичного релиза */}
-        <a
-          href="/api/release/download-zip"
-          download="AutoApp-Builder-Public-Release-v0.1.0-alpha.1.zip"
-          className="bg-[#5e6ad2] hover:bg-[#6e7ae2] text-white px-5 py-2.5 text-xs font-bold tracking-wider uppercase transition-colors flex items-center gap-2 whitespace-nowrap shrink-0"
-        >
-          <Download className="h-3.5 w-3.5" />
-          <span>DOWNLOAD</span>
-        </a>
-      </header>
+          {/* Зона 3: Главное действие выгрузки публичного релиза */}
+          <button
+            type="button"
+            onClick={() => orchestratorClient.downloadReleaseZip()}
+            className="bg-[#5e6ad2] hover:bg-[#6e7ae2] text-white px-5 py-2.5 text-xs font-bold tracking-wider uppercase transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span>DOWNLOAD</span>
+          </button>
+        </header>
+      )}
 
       {/* 2. Центральное рабочее пространство (.workspace) */}
       <main className="min-h-0 overflow-hidden flex items-center justify-center">
         {layoutMode === 'tray' ? (
           /* Режим компактного всплывающего окна System Tray (440x650) */
-          <div className="w-[440px] h-[650px] max-h-full bg-[#111113] border border-white/15 shadow-2xl flex flex-col overflow-hidden">
-            <div className="px-4 py-3 bg-black border-b border-white/10 flex items-center justify-between gap-2 shrink-0">
-              <span className="font-display font-extrabold text-xs tracking-tight text-white">
-                AUTOAPP · TRAY 440×650
-              </span>
+          <div
+            className={`${
+              isCompactViewport
+                ? 'w-full h-full'
+                : 'w-[440px] h-[650px] max-h-full border border-white/15 shadow-2xl'
+            } bg-[#111113] flex flex-col overflow-hidden`}
+          >
+            <div className="px-3.5 py-2.5 bg-black border-b border-white/10 flex items-center justify-between gap-2 shrink-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="font-display font-extrabold text-xs tracking-tight text-white truncate">
+                  AUTOAPP · 440×650
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleToggleLayoutMode('studio')}
+                  className="px-1.5 py-0.5 bg-white/5 hover:bg-[#5e6ad2] border border-white/15 text-white/85 font-mono text-[9px] uppercase tracking-wider transition-colors cursor-pointer shrink-0"
+                  title="Развернуть полноэкранную студию (1440×900)"
+                >
+                  1440×900
+                </button>
+              </div>
               <div className="flex items-center gap-1">
                 {(
                   [
@@ -622,30 +667,40 @@ export function AutoAppBuilderRenderer() {
       </main>
 
       {/* 3. Нижняя панель управления и индикации (Variation 7 Footer) */}
-      <footer className="px-8 py-3 border-t border-white/10 bg-[#111113] flex flex-wrap items-center justify-between gap-4 shrink-0">
-        <div className="flex items-center gap-3 font-mono text-[11px] tracking-[0.12em] uppercase text-white/70">
-          <span className="text-amber-300 font-bold">
-            EARLY STAGE ALPHA (v0.1.0-alpha.1)
-          </span>
-          <span aria-hidden="true">·</span>
-          <span>LLM: {aiConfig.selectedModelId}</span>
-          <span aria-hidden="true">·</span>
-          <span>RUNNING APPS: {runningAppsCount}</span>
-          <span aria-hidden="true">·</span>
-          <span>
-            GITHUB POLLING:{' '}
-            {hubSettings.backgroundPollingEnabled
-              ? `ON (${hubSettings.pollingIntervalMinutes}M)`
-              : 'OFF'}
-          </span>
-        </div>
+      <footer
+        className={`${
+          isCompactViewport ? 'px-3 py-2 gap-2' : 'px-8 py-3 gap-4'
+        } border-t border-white/10 bg-[#111113] flex flex-wrap items-center justify-between shrink-0`}
+      >
+        {!isCompactViewport && (
+          <div className="flex items-center gap-3 font-mono text-[11px] tracking-[0.12em] uppercase text-white/70">
+            <span className="text-amber-300 font-bold">
+              EARLY STAGE ALPHA (v0.1.0-alpha.1)
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>LLM: {aiConfig.selectedModelId}</span>
+            <span aria-hidden="true">·</span>
+            <span>RUNNING APPS: {runningAppsCount}</span>
+            <span aria-hidden="true">·</span>
+            <span>
+              GITHUB POLLING:{' '}
+              {hubSettings.backgroundPollingEnabled
+                ? `ON (${hubSettings.pollingIntervalMinutes}M)`
+                : 'OFF'}
+            </span>
+          </div>
+        )}
 
-        <div className="flex items-center gap-3">
+        <div
+          className={`flex items-center ${
+            isCompactViewport ? 'w-full justify-between gap-1.5' : 'gap-3'
+          }`}
+        >
           {/* Кнопка открытия сквозного журнала всех процессов и автоисправления ошибок */}
           <button
             type="button"
             onClick={() => setIsDiagnosticsDrawerOpen(true)}
-            className={`flex items-center gap-1.5 px-3 py-1 border font-mono tabular-nums text-[10px] tracking-wider uppercase transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 border font-mono tabular-nums text-[10px] tracking-wider uppercase transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
               unresolvedErrorCount > 0
                 ? 'bg-red-500/20 border-red-500/60 text-red-300 hover:bg-red-500/30 font-bold'
                 : 'border-white/15 hover:border-[#5e6ad2] text-white/85'
@@ -654,7 +709,7 @@ export function AutoAppBuilderRenderer() {
             <Activity className="h-3 w-3 text-[#5e6ad2]" />
             <span>
               {unresolvedErrorCount > 0
-                ? `ЛОГ ПРОЦЕССОВ (${totalProcessLogsCount} · ОШИБОК: ${unresolvedErrorCount})`
+                ? `ЛОГ (${totalProcessLogsCount} · ERR: ${unresolvedErrorCount})`
                 : `ЛОГ ПРОЦЕССОВ (${totalProcessLogsCount})`}
             </span>
           </button>
@@ -665,7 +720,7 @@ export function AutoAppBuilderRenderer() {
             onClick={() =>
               handleToggleLayoutMode(layoutMode === 'studio' ? 'tray' : 'studio')
             }
-            className="flex items-center gap-1.5 px-3 py-1 border border-white/15 hover:border-[#5e6ad2] text-white/80 font-mono text-[10px] tracking-wider uppercase transition-colors cursor-pointer whitespace-nowrap shrink-0"
+            className="flex items-center gap-1.5 px-2.5 py-1 border border-white/15 hover:border-[#5e6ad2] text-white/80 font-mono text-[10px] tracking-wider uppercase transition-colors cursor-pointer whitespace-nowrap shrink-0"
           >
             {layoutMode === 'studio' ? (
               <>
@@ -675,7 +730,7 @@ export function AutoAppBuilderRenderer() {
             ) : (
               <>
                 <Maximize2 className="h-3 w-3 text-[#5e6ad2]" />
-                <span>ПОЛНОЭКРАННАЯ ПАНЕЛЬ</span>
+                <span>{isCompactViewport ? 'СТУДИЯ' : 'ПОЛНОЭКРАННАЯ ПАНЕЛЬ'}</span>
               </>
             )}
           </button>
@@ -685,13 +740,15 @@ export function AutoAppBuilderRenderer() {
             type="button"
             disabled={purgingQuick}
             onClick={handlePurgeCache}
-            className="flex items-center gap-1.5 px-3 py-1 border border-white/15 hover:border-red-500/60 hover:text-red-400 text-white/80 font-mono tabular-nums text-[10px] tracking-wider uppercase transition-colors cursor-pointer whitespace-nowrap shrink-0"
+            className="flex items-center gap-1.5 px-2.5 py-1 border border-white/15 hover:border-red-500/60 hover:text-red-400 text-white/80 font-mono tabular-nums text-[10px] tracking-wider uppercase transition-colors cursor-pointer whitespace-nowrap shrink-0"
           >
             <Trash2 className="h-3 w-3 text-red-400" />
             <span>
               {purgingQuick
                 ? 'ОЧИСТКА...'
-                : `ОЧИСТИТЬ КЭШ (${cacheDisplayGb} GB)`}
+                : isCompactViewport
+                  ? `КЭШ (${cacheDisplayGb}G)`
+                  : `ОЧИСТИТЬ КЭШ (${cacheDisplayGb} GB)`}
             </span>
           </button>
         </div>

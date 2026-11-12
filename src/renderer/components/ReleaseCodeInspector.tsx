@@ -107,14 +107,14 @@ export const ReleaseCodeInspector: React.FC = () => {
             <span>КОМАНДЫ ПУБЛИКАЦИИ GIT</span>
           </button>
 
-          <a
-            href="/api/release/download-zip"
-            download="AutoApp-Builder-Public-Release-v0.1.0-alpha.1.zip"
-            className="flex items-center gap-2 px-4 py-2 bg-[#5e6ad2] hover:bg-[#6e7ae2] text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors whitespace-nowrap shrink-0"
+          <button
+            type="button"
+            onClick={() => orchestratorClient.downloadReleaseZip()}
+            className="flex items-center gap-2 px-4 py-2 bg-[#5e6ad2] hover:bg-[#6e7ae2] text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
             <Download className="h-3.5 w-3.5" />
             <span>СКАЧАТЬ ПУБЛИЧНЫЙ РЕЛИЗ (.ZIP)</span>
-          </a>
+          </button>
         </div>
       </div>
 

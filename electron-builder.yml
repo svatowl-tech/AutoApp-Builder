@@ -10,7 +10,17 @@ directories:
 files:
   - dist/**/*
   - dist-electron/**/*
+  - src/**/*
+  - scripts/**/*
   - package.json
+  - README.md
+  - CHANGELOG.md
+  - LICENSE
+  - CONTRIBUTING.md
+  - electron-builder.yml
+  - tsconfig.json
+  - vite.config.ts
+  - tailwind.config.js
   - "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}"
   - "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}"
   - "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}"

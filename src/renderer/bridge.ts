@@ -225,6 +225,9 @@ export const orchestratorClient = {
   },
 
   async getReleaseFiles(): Promise<SourceFileNode[]> {
+    if (window.electronAPI) {
+      return window.electronAPI.getReleaseFiles();
+    }
     return apiRequest('/api/release/files');
   },
 
@@ -232,9 +235,25 @@ export const orchestratorClient = {
     path: string;
     content: string;
   }> {
+    if (window.electronAPI) {
+      return window.electronAPI.getReleaseFileContent(filePath);
+    }
     return apiRequest(
       `/api/release/file-content?path=${encodeURIComponent(filePath)}`,
     );
+  },
+
+  async downloadReleaseZip(): Promise<void> {
+    if (window.electronAPI) {
+      await window.electronAPI.downloadReleaseZip();
+      return;
+    }
+    const link = document.createElement('a');
+    link.href = '/api/release/download-zip';
+    link.download = 'AutoApp-Builder-Public-Release-v0.1.0-alpha.1.zip';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   },
 
   async getHubState(): Promise<{
@@ -387,6 +406,28 @@ export const orchestratorClient = {
     return apiRequest('/api/logs/clear', {
       method: 'POST',
     });
+  },
+
+  async exportProcessLogs(): Promise<void> {
+    if (window.electronAPI) {
+      const { reportText } = await window.electronAPI.exportProcessLogs();
+      const blob = new Blob([reportText], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `AutoApp-Process-Telemetry-${Date.now()}.log`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      return;
+    }
+    const link = document.createElement('a');
+    link.href = '/api/logs/export';
+    link.download = 'AutoApp-Process-Telemetry.log';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   },
 };
 

@@ -94,6 +94,7 @@ declare module 'electron' {
   export const app: {
     whenReady(): Promise<void>;
     getPath(name: 'userData' | 'home' | 'temp' | 'exe'): string;
+    getAppPath(): string;
     quit(): void;
     on(
       event: 'before-quit' | 'window-all-closed' | 'activate',

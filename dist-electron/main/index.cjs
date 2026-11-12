@@ -3691,9 +3691,10 @@ var SystemProcessLogger = class {
 
 // src/main/orchestrator/engine.ts
 var OrchestratorEngine = class {
-  constructor(userDataDir) {
+  constructor(userDataDir, appRootDir) {
     this.artifactsHistory = [];
     const resolvedUserData = userDataDir || import_path10.default.join(import_os3.default.homedir(), ".autoapp-builder");
+    this.appRootDir = appRootDir || process.cwd();
     this.processLogger = new SystemProcessLogger(resolvedUserData);
     this.cacheManager = new SharedCacheManager(resolvedUserData);
     this.aiProvider = new LocalAIProvider(resolvedUserData);
@@ -4401,7 +4402,7 @@ func main() {
    * для просмотра в разделе «Код релиза» и упаковки релизного архива для GitHub.
    */
   getReleaseRepositoryFiles() {
-    const projectRoot = process.cwd();
+    const projectRoot = this.appRootDir;
     const trackedFiles = [
       {
         relPath: "README.md",
@@ -4568,7 +4569,7 @@ func main() {
   /** Читает содержимое исходного файла проекта для инспектора кода */
   readReleaseSourceFile(relPath) {
     const safeTarget = ArchiveManager.assertSafeExtractPath(
-      process.cwd(),
+      this.appRootDir,
       relPath
     );
     if (!import_fs10.default.existsSync(safeTarget)) {
@@ -4582,7 +4583,7 @@ func main() {
     const filesToPack = [];
     const addedPaths = /* @__PURE__ */ new Set();
     for (const node of nodes) {
-      const fullPath = import_path10.default.join(process.cwd(), node.path);
+      const fullPath = import_path10.default.join(this.appRootDir, node.path);
       if (import_fs10.default.existsSync(fullPath)) {
         filesToPack.push({
           relativePath: node.path,
@@ -4606,12 +4607,13 @@ func main() {
       "src/index.css",
       "server.ts",
       "index.html",
+      "build/icon.png",
       ".env.example",
       ".gitignore"
     ];
     for (const extra of extraRepoFiles) {
       if (addedPaths.has(extra)) continue;
-      const p = import_path10.default.join(process.cwd(), extra);
+      const p = import_path10.default.join(this.appRootDir, extra);
       if (import_fs10.default.existsSync(p)) {
         filesToPack.push({
           relativePath: extra,
@@ -4641,7 +4643,8 @@ async function createMainWindow() {
     height: TRAY_WINDOW_HEIGHT,
     minWidth: TRAY_WINDOW_WIDTH,
     minHeight: TRAY_WINDOW_HEIGHT,
-    frame: false,
+    frame: true,
+    autoHideMenuBar: true,
     resizable: true,
     fullscreenable: true,
     show: false,
@@ -4922,10 +4925,28 @@ function registerIpcHandlers(engine) {
       reportText: engine.processLogger.exportDiagnosticReportText()
     };
   });
+  import_electron.ipcMain.handle("release:get-files", async () => {
+    return engine.getReleaseRepositoryFiles();
+  });
+  import_electron.ipcMain.handle("release:get-file-content", async (_event, filePath) => {
+    const content = engine.readReleaseSourceFile(filePath);
+    return { path: filePath, content };
+  });
+  import_electron.ipcMain.handle("release:download-zip", async () => {
+    const zipBuffer = engine.createFullRepositoryReleaseZip();
+    const outPath = import_path11.default.join(
+      engine.cacheManager.getOutputArtifactsPath(),
+      "AutoApp-Builder-Public-Release-v0.1.0-alpha.1.zip"
+    );
+    import_fs11.default.writeFileSync(outPath, zipBuffer);
+    import_electron.shell.showItemInFolder(outPath);
+    return { savedPath: outPath };
+  });
 }
 import_electron.app.whenReady().then(async () => {
   const userDataPath = import_electron.app.getPath("userData");
-  orchestrator = new OrchestratorEngine(userDataPath);
+  const appRootPath = import_electron.app.getAppPath();
+  orchestrator = new OrchestratorEngine(userDataPath, appRootPath);
   registerIpcHandlers(orchestrator);
   setupSystemTray();
   await createMainWindow();

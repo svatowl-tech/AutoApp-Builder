@@ -51,10 +51,12 @@ export class OrchestratorEngine {
 
   private activeSession: BuildSessionState;
   private artifactsHistory: BuiltArtifactInfo[] = [];
+  private readonly appRootDir: string;
 
-  constructor(userDataDir?: string) {
+  constructor(userDataDir?: string, appRootDir?: string) {
     const resolvedUserData =
       userDataDir || path.join(os.homedir(), '.autoapp-builder');
+    this.appRootDir = appRootDir || process.cwd();
 
     this.processLogger = new SystemProcessLogger(resolvedUserData);
     this.cacheManager = new SharedCacheManager(resolvedUserData);
@@ -872,7 +874,7 @@ export class OrchestratorEngine {
    * для просмотра в разделе «Код релиза» и упаковки релизного архива для GitHub.
    */
   public getReleaseRepositoryFiles(): SourceFileNode[] {
-    const projectRoot = process.cwd();
+    const projectRoot = this.appRootDir;
     const trackedFiles: Array<{
       relPath: string;
       category: SourceFileNode['category'];
@@ -1045,7 +1047,7 @@ export class OrchestratorEngine {
   /** Читает содержимое исходного файла проекта для инспектора кода */
   public readReleaseSourceFile(relPath: string): string {
     const safeTarget = ArchiveManager.assertSafeExtractPath(
-      process.cwd(),
+      this.appRootDir,
       relPath,
     );
     if (!fs.existsSync(safeTarget)) {
@@ -1061,7 +1063,7 @@ export class OrchestratorEngine {
     const addedPaths = new Set<string>();
 
     for (const node of nodes) {
-      const fullPath = path.join(process.cwd(), node.path);
+      const fullPath = path.join(this.appRootDir, node.path);
       if (fs.existsSync(fullPath)) {
         filesToPack.push({
           relativePath: node.path,
@@ -1094,7 +1096,7 @@ export class OrchestratorEngine {
 
     for (const extra of extraRepoFiles) {
       if (addedPaths.has(extra)) continue;
-      const p = path.join(process.cwd(), extra);
+      const p = path.join(this.appRootDir, extra);
       if (fs.existsSync(p)) {
         filesToPack.push({
           relativePath: extra,

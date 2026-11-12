@@ -56,7 +56,8 @@ async function createMainWindow(): Promise<BrowserWindow> {
     height: TRAY_WINDOW_HEIGHT,
     minWidth: TRAY_WINDOW_WIDTH,
     minHeight: TRAY_WINDOW_HEIGHT,
-    frame: false,
+    frame: true,
+    autoHideMenuBar: true,
     resizable: true,
     fullscreenable: true,
     show: false,
@@ -420,11 +421,33 @@ function registerIpcHandlers(engine: OrchestratorEngine): void {
       reportText: engine.processLogger.exportDiagnosticReportText(),
     };
   });
+
+  // 12. Инспектор исходных файлов релиза и экспорт полного ZIP-архива репозитория
+  ipcMain.handle('release:get-files', async () => {
+    return engine.getReleaseRepositoryFiles();
+  });
+
+  ipcMain.handle('release:get-file-content', async (_event, filePath: string) => {
+    const content = engine.readReleaseSourceFile(filePath);
+    return { path: filePath, content };
+  });
+
+  ipcMain.handle('release:download-zip', async () => {
+    const zipBuffer = engine.createFullRepositoryReleaseZip();
+    const outPath = path.join(
+      engine.cacheManager.getOutputArtifactsPath(),
+      'AutoApp-Builder-Public-Release-v0.1.0-alpha.1.zip',
+    );
+    fs.writeFileSync(outPath, zipBuffer);
+    shell.showItemInFolder(outPath);
+    return { savedPath: outPath };
+  });
 }
 
 app.whenReady().then(async () => {
   const userDataPath = app.getPath('userData');
-  orchestrator = new OrchestratorEngine(userDataPath);
+  const appRootPath = app.getAppPath();
+  orchestrator = new OrchestratorEngine(userDataPath, appRootPath);
 
   registerIpcHandlers(orchestrator);
   setupSystemTray();
