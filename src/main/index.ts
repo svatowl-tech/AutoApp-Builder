@@ -63,7 +63,9 @@ async function createMainWindow(): Promise<BrowserWindow> {
     backgroundColor: '#111113',
     title: 'AutoApp-Builder',
     webPreferences: {
-      preload: path.join(__dirname, '../preload/index.js'),
+      preload: fs.existsSync(path.join(__dirname, '../preload/index.cjs'))
+        ? path.join(__dirname, '../preload/index.cjs')
+        : path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,

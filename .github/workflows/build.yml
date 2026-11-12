@@ -45,11 +45,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Установка Node.js 22 LTS с кэшированием npm
+      - name: Установка Node.js 22 LTS (без обязательного package-lock.json)
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+
+      - name: Кэширование пакетов npm по хэшу package.json
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
 
       - name: Установка системных зависимостей Linux (AppImage / deb)
         if: matrix.os == 'ubuntu-latest'
@@ -57,13 +64,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libfuse2 rpm fakeroot dpkg
 
-      - name: Установка пакетов проекта
-        run: npm install
+      - name: Установка зависимостей проекта и инструментов упаковки Electron
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund electron@34.2.0 electron-builder@25.1.8
 
       - name: Строгая проверка типов TypeScript (tsc --noEmit)
         run: npm run lint
 
-      - name: Сборка фронтенда React 19 (Vite) и модулей Electron
+      - name: Сборка фронтенда React 19 (Vite) и модулей Electron (esbuild)
         run: npm run build:electron
 
       - name: Упаковка нативных инсталляторов (${{ matrix.platform_name }})
@@ -89,6 +98,8 @@ jobs:
     name: Auto-Publish Public Pre-Release (Early Stage Alpha)
     needs: build-matrix
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Клонирование репозитория

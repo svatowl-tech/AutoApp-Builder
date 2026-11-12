@@ -1,6 +1,7 @@
 appId: com.autoapp.builder
 productName: AutoApp-Builder
-copyright: Copyright © 2026 AutoApp-Builder Contributors
+copyright: Copyright © 2026 AutoApp-Builder Open Source Contributors
+electronVersion: "34.2.0"
 
 directories:
   buildResources: build
@@ -22,6 +23,7 @@ extraResources:
 
 asar: true
 compression: maximum
+npmRebuild: false
 
 # Конфигурация сборки под Windows (.exe NSIS + Portable)
 win:
@@ -29,7 +31,6 @@ win:
     - target: nsis
       arch:
         - x64
-        - arm64
     - target: portable
       arch:
         - x64
@@ -46,11 +47,12 @@ nsis:
 portable:
   artifactName: "${productName}-Windows-${version}-${arch}-Portable.${ext}"
 
-# Конфигурация сборки под macOS (.dmg Universal/x64/arm64)
+# Конфигурация сборки под macOS (.dmg и .zip для Intel и Apple Silicon)
 mac:
   category: public.app-category.developer-tools
   hardenedRuntime: true
   gatekeeperAssess: false
+  identity: null
   target:
     - target: dmg
       arch:
@@ -82,15 +84,12 @@ linux:
     - target: AppImage
       arch:
         - x64
-        - arm64
     - target: deb
       arch:
         - x64
-        - arm64
   artifactName: "${productName}-Linux-${version}-${arch}.${ext}"
 
 # Публикация в публичный репозиторий GitHub Releases с пометкой Pre-release (Ранняя стадия / Alpha)
 publish:
   provider: github
   releaseType: prerelease
-

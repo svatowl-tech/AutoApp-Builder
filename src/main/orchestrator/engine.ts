@@ -929,6 +929,11 @@ export class OrchestratorEngine {
         description: 'Конфигурация темы и шрифтов Tailwind CSS',
       },
       {
+        relPath: 'scripts/build-electron.mjs',
+        category: 'ci-cd',
+        description: 'Скрипт компиляции процессов Main и Preload (esbuild -> dist-electron/) для упаковки через electron-builder',
+      },
+      {
         relPath: 'src/main/index.ts',
         category: 'main-orchestrator',
         description: 'Главный процесс Electron: System Tray, всплывающее окно 440x650 и IPC-обработчики',
